@@ -4,1015 +4,358 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Nibbles Pro — InNovaIdeia</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-  <style>
-    :root {
-      --primary: #667eea;
-      --secondary: #764ba2;
-      --accent: #00ff88;
-      --dark: #0b1220;
-      --light: #f8fafc;
-    }
-    body {
-      background: linear-gradient(180deg, var(--dark), #071026);
-      color: #e6eef8;
-      font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
-    }
-    .container { max-width: 1100px; margin: 28px auto; }
-    .game-area { display: flex; gap: 18px; align-items: flex-start; }
-    canvas {
-      background: linear-gradient(180deg, #071026, #0b1220);
-      border-radius: 14px;
-      box-shadow: 0 12px 40px rgba(0,0,0,0.6);
-      display: block;
-    }
-    .panel {
-      width: 360px;
-      min-width: 260px;
-      color: #cfe6ff;
-    }
-    .stats { font-size: 0.95rem; margin-bottom: 12px; }
-    .controls button { margin-right: 8px; }
-    .footer { margin-top: 20px; padding: 12px; text-align: center; color: #cbd5e1; font-size: 0.9rem; }
-    .badge-diff { text-transform: capitalize; }
-    .difficulty-btn {
-      background: #0f172a;
-      border: 1px solid rgba(255,255,255,0.06);
-      color: #9fb4d8;
-      padding: 8px 12px;
-      border-radius: 10px;
-      cursor: pointer;
-    }
-    .difficulty-btn.active {
-      background: linear-gradient(90deg, var(--primary), var(--secondary));
-      color: white;
-      box-shadow: 0 6px 18px rgba(102,126,234,0.25);
-    }
-    .power-up {
-      padding: 6px 10px;
-      border-radius: 14px;
-      font-size: 0.85rem;
-      display: inline-block;
-      margin-right: 6px;
-      color: #071026;
-      font-weight: 600;
-    }
-    #lojaModal .modal-content { background: #1a1a2e; color: white; }
-    .coin-icon { color: gold; margin-right: 4px; }
-    @media (max-width: 920px) {
-      .game-area { flex-direction: column; align-items: center; }
-      .panel { width: 100%; max-width: 520px; }
-      canvas { width: 90% !important; height: auto !important; }
-    }
-  </style>
+  <meta name="description" content="Jogo Snake moderno com power-ups, monetização e suporte mobile. Desenvolvido por Dione Castro Alves — InNovaIdeia." />
+
+  <!-- FIX #8: PWA — meta tags e manifest -->
+  <meta name="theme-color" content="#0b1220" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Nibbles Pro" />
+  <link rel="manifest" href="manifest.json" />
+
+  <!-- Open Graph (compartilhamento) -->
+  <meta property="og:title"       content="Nibbles Pro — InNovaIdeia" />
+  <meta property="og:description" content="Snake com power-ups, loja e suporte mobile." />
+  <meta property="og:type"        content="website" />
+  <meta property="og:url"         content="https://snake-storm-foxactive1s-projects.vercel.app/" />
+
+  <!-- FIX #14: Font Awesome no <head> (evita flash de ícones sem render) -->
+  <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
+        crossorigin="anonymous" />
+
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
+        rel="stylesheet" />
+
+  <!-- FIX #6: CSS extraído para arquivo separado (cache + manutenção) -->
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-<div class="container">
-  <!-- Cabeçalho com perfil e moedas -->
-  <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap">
-    <h1 style="margin-bottom:0">Nibbles Pro <small style="color:#9fb4d8">beta</small></h1>
-    <div class="d-flex gap-2 align-items-center">
-      <span id="userNameDisplay" class="badge bg-primary">Jogador</span>
-      <span id="moedasDisplay" class="badge bg-warning text-dark"><i class="fas fa-coins"></i> 0</span>
-      <span id="premiumBadge" class="badge bg-danger d-none">PREMIUM</span>
-      <button class="btn btn-outline-light btn-sm" data-bs-toggle="modal" data-bs-target="#loginModal"><i class="fas fa-user"></i></button>
-      <button class="btn btn-outline-success btn-sm" data-bs-toggle="modal" data-bs-target="#lojaModal"><i class="fas fa-store"></i></button>
-      <button id="btnSom" class="btn btn-outline-secondary rounded-circle" title="Configurar som">🔊</button>
-    </div>
-  </div>
+  <div class="container">
 
-  <!-- Área do jogo -->
-  <div class="game-area">
-    <canvas id="gameCanvas" width="500" height="500"></canvas>
+    <!-- ── Cabeçalho ── -->
+    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+      <h1 style="margin-bottom:0">
+        Nibbles Pro <small style="color:#9fb4d8">beta</small>
+      </h1>
 
-    <div class="panel">
-      <!-- Dificuldade -->
-      <div style="margin-bottom:16px;">
-        <label style="display:block;margin-bottom:8px">Dificuldade</label>
-        <div id="difficultyGroup">
-          <button class="difficulty-btn active" data-level="easy">Fácil</button>
-          <button class="difficulty-btn" data-level="medium">Médio</button>
-          <button class="difficulty-btn" data-level="hard">Difícil</button>
-        </div>
-      </div>
+      <div class="d-flex gap-2 align-items-center flex-wrap">
+        <span id="userNameDisplay" class="badge bg-primary">Jogador</span>
 
-      <!-- Estatísticas -->
-      <div class="stats">
-        <p>Placar: <strong id="score">0</strong></p>
-        <p>Recorde: <strong id="highScore">0</strong></p>
-        <p>Vidas: <strong id="lives">3</strong></p>
-        <p>Moedas: <strong id="moedasJogo">0</strong></p>
-        <p>Velocidade: <strong id="speedDisplay">1x</strong></p>
-        <p>Power-ups ativos: <span id="powerUpList">—</span></p>
-      </div>
+        <span id="moedasDisplay" class="badge bg-warning text-dark">
+          <i class="fas fa-coins"></i> 0
+        </span>
 
-      <!-- Controles -->
-      <div class="controls" style="margin-bottom:14px;">
-        <button id="startBtn" class="btn btn-success">Iniciar</button>
-        <button id="pauseBtn" class="btn btn-warning" style="display:none">Pausar</button>
-        <button id="restartBtn" class="btn btn-danger" style="display:none">Reiniciar</button>
-      </div>
+        <span id="premiumBadge" class="badge bg-danger d-none">PREMIUM</span>
 
-      <!-- Barra de velocidade -->
-      <div style="margin-bottom:12px;">
-        <label style="display:block;margin-bottom:6px">Indicador de velocidade</label>
-        <div class="progress" style="height:12px">
-          <div id="speedBar" class="progress-bar" role="progressbar" style="width:0%"> </div>
-        </div>
-      </div>
+        <!-- FIX #13: aria-labels em todos os botões de controle -->
+        <button class="btn btn-outline-light btn-sm"
+                data-bs-toggle="modal"
+                data-bs-target="#loginModal"
+                aria-label="Entrar / Editar perfil">
+          <i class="fas fa-user" aria-hidden="true"></i>
+        </button>
 
-      <!-- Anúncio simulado (visível apenas para não premium) -->
-      <div id="anuncioSimulado" class="text-center text-light small p-2 mb-2" style="background:#2c3e50; border-radius:8px; cursor:pointer;" onclick="Monetization.mostrarAnuncio()">
-        <i class="fas fa-ad me-1"></i> Anúncio (clique para ganhar 10 moedas!)
-      </div>
+        <button class="btn btn-outline-success btn-sm"
+                data-bs-toggle="modal"
+                data-bs-target="#lojaModal"
+                aria-label="Abrir loja">
+          <i class="fas fa-store" aria-hidden="true"></i>
+        </button>
 
-      <!-- Power-ups visíveis no campo -->
-      <div style="margin-top:6px;">
-        <small class="text-muted">Controles: setas / W A S D / swipe mobile. Espaço = iniciar/pausar / R = reiniciar</small>
-      </div>
-
-      <div style="margin-top:16px;">
-        <strong>Power-ups disponíveis:</strong>
-        <div id="powerBadges" style="margin-top:10px">
-          <!-- badges serão inseridos dinamicamente -->
-        </div>
+        <button id="btnSom"
+                class="btn btn-outline-secondary rounded-circle"
+                aria-label="Configurações de som">
+          🔊
+        </button>
       </div>
     </div>
-  </div>
 
-  <!-- Rodapé -->
-  <div class="footer">
-    <p>Desenvolvido por Dione Castro Alves | &copy; 2025 InNovaIdeia | <a href="#" style="color:#9bd3ff">Portfólio</a></p>
-  </div>
-</div>
+    <!-- ── Área do jogo ── -->
+    <div class="game-area">
 
-<!-- Modais -->
-<div class="modal fade" id="loginModal" tabindex="-1">
-  <div class="modal-dialog modal-sm">
-    <div class="modal-content bg-dark text-light">
-      <div class="modal-header"><h5 class="modal-title">Login</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
-      <div class="modal-body">
-        <input type="text" id="inputNome" class="form-control mb-2" placeholder="Seu nome" value="Jogador">
-        <button class="btn btn-primary w-100" onclick="Conta.login()">Entrar</button>
+      <!-- Canvas envolto no wrapper para medição responsiva (FIX #7) -->
+      <div class="canvas-wrapper">
+        <canvas id="gameCanvas"
+                width="500"
+                height="500"
+                aria-label="Área do jogo Nibbles Pro"
+                role="img">
+        </canvas>
       </div>
-    </div>
-  </div>
-</div>
 
-<div class="modal fade" id="lojaModal" tabindex="-1">
-  <div class="modal-dialog">
-    <div class="modal-content bg-dark text-light">
-      <div class="modal-header"><h5 class="modal-title">Loja</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
-      <div class="modal-body">
-        <p><i class="fas fa-coins text-warning"></i> Moedas: <span id="modalMoedas">0</span></p>
-        <div class="list-group">
-          <div class="list-group-item bg-secondary d-flex justify-content-between align-items-center">
-            <span>100 moedas</span>
-            <button class="btn btn-sm btn-success" onclick="Monetization.comprarMoedas(100)">Comprar (R$1,99)</button>
-          </div>
-          <div class="list-group-item bg-secondary d-flex justify-content-between align-items-center">
-            <span>500 moedas</span>
-            <button class="btn btn-sm btn-success" onclick="Monetization.comprarMoedas(500)">Comprar (R$9,99)</button>
-          </div>
-          <div class="list-group-item bg-secondary d-flex justify-content-between align-items-center">
-            <span>Plano Premium (remove anúncios + dobra moedas)</span>
-            <button class="btn btn-sm btn-warning" onclick="Monetization.assinarPremium()">Assinar (R$9,90/mês)</button>
+      <!-- Painel lateral -->
+      <div class="panel">
+
+        <!-- Dificuldade -->
+        <div style="margin-bottom:16px;">
+          <label style="display:block;margin-bottom:8px">
+            Dificuldade
+          </label>
+          <div id="difficultyGroup" role="group" aria-label="Selecionar dificuldade">
+            <button class="difficulty-btn active" data-level="easy">Fácil</button>
+            <button class="difficulty-btn"        data-level="medium">Médio</button>
+            <button class="difficulty-btn"        data-level="hard">Difícil</button>
           </div>
         </div>
-        <hr>
-        <h6>Comprar com moedas:</h6>
-        <div class="d-flex flex-wrap gap-2">
-          <button class="btn btn-outline-info btn-sm" onclick="Monetization.comprarPowerUp('shield')">Escudo (50 moedas)</button>
-          <button class="btn btn-outline-info btn-sm" onclick="Monetization.comprarPowerUp('double')">2x Pontos (40 moedas)</button>
-          <button class="btn btn-outline-info btn-sm" onclick="Monetization.comprarPowerUp('slow')">Lentidão (30 moedas)</button>
-          <button class="btn btn-outline-info btn-sm" onclick="Monetization.comprarVida()">Vida extra (100 moedas)</button>
+
+        <!-- Estatísticas -->
+        <div class="stats" aria-live="polite" aria-atomic="true">
+          <p>Placar:          <strong id="score">0</strong></p>
+          <p>Recorde:         <strong id="highScore">0</strong></p>
+          <p>Vidas:           <strong id="lives">3</strong></p>
+          <p>Moedas:          <strong id="moedasJogo">0</strong></p>
+          <p>Velocidade:      <strong id="speedDisplay">1x</strong></p>
+          <p>Power-ups ativos:<span id="powerUpList"> —</span></p>
+        </div>
+
+        <!-- Controles -->
+        <div class="controls" style="margin-bottom:14px;">
+          <button id="startBtn"
+                  class="btn btn-success"
+                  aria-label="Iniciar partida">
+            Iniciar
+          </button>
+          <button id="pauseBtn"
+                  class="btn btn-warning"
+                  style="display:none"
+                  aria-label="Pausar ou continuar partida">
+            Pausar
+          </button>
+          <button id="restartBtn"
+                  class="btn btn-danger"
+                  style="display:none"
+                  aria-label="Reiniciar partida">
+            Reiniciar
+          </button>
+        </div>
+
+        <!-- Barra de velocidade -->
+        <div style="margin-bottom:12px;">
+          <label style="display:block;margin-bottom:6px">
+            Indicador de velocidade
+          </label>
+          <div class="progress" style="height:12px" role="progressbar"
+               aria-label="Velocidade atual" aria-valuemin="0" aria-valuemax="100">
+            <div id="speedBar"
+                 class="progress-bar"
+                 style="width:0%">
+            </div>
+          </div>
+        </div>
+
+        <!-- Anúncio simulado (não-premium) -->
+        <div id="anuncioSimulado"
+             class="text-center text-light small p-2 mb-2"
+             role="button"
+             tabindex="0"
+             aria-label="Assistir anúncio e ganhar 10 moedas"
+             onclick="Monetization.mostrarAnuncio()">
+          <i class="fas fa-ad me-1" aria-hidden="true"></i>
+          Anúncio (clique para ganhar 10 moedas!)
+        </div>
+
+        <!-- Dica de controles -->
+        <div style="margin-top:6px;">
+          <small class="text-muted">
+            Controles: setas / W A S D / swipe mobile.<br>
+            <kbd>Espaço</kbd> = iniciar/pausar &nbsp;|&nbsp; <kbd>R</kbd> = reiniciar
+          </small>
+        </div>
+
+        <!-- Power-ups disponíveis (badges dinâmicos) -->
+        <div style="margin-top:16px;">
+          <strong>Power-ups ativos:</strong>
+          <div id="powerBadges" style="margin-top:10px"></div>
+        </div>
+
+      </div><!-- /panel -->
+    </div><!-- /game-area -->
+
+    <!-- ── Rodapé ── -->
+    <footer class="footer">
+      <p>
+        Desenvolvido por Dione Castro Alves
+        &nbsp;|&nbsp; &copy; 2025 InNovaIdeia
+        &nbsp;|&nbsp;
+        <a href="https://github.com/Foxactive1" target="_blank" rel="noopener">
+          GitHub
+        </a>
+      </p>
+    </footer>
+
+  </div><!-- /container -->
+
+  <!-- ══════════════════════════════════════════════
+       MODAIS
+  ══════════════════════════════════════════════ -->
+
+  <!-- Modal Login -->
+  <div class="modal fade" id="loginModal" tabindex="-1"
+       aria-labelledby="loginModalLabel" aria-modal="true" role="dialog">
+    <div class="modal-dialog modal-sm">
+      <div class="modal-content bg-dark text-light">
+        <div class="modal-header">
+          <h5 class="modal-title" id="loginModalLabel">Login</h5>
+          <button type="button" class="btn-close btn-close-white"
+                  data-bs-dismiss="modal" aria-label="Fechar"></button>
+        </div>
+        <div class="modal-body">
+          <label for="inputNome" class="form-label">Seu nome</label>
+          <input type="text" id="inputNome" class="form-control mb-3"
+                 placeholder="Jogador" value="Jogador"
+                 autocomplete="nickname" />
+          <button class="btn btn-primary w-100" onclick="Conta.login()">
+            Entrar
+          </button>
         </div>
       </div>
     </div>
   </div>
-</div>
 
-<!-- Modal de configurações de som -->
-<div class="modal fade" id="somModal" tabindex="-1">
-  <div class="modal-dialog modal-sm">
-    <div class="modal-content bg-dark text-light">
-      <div class="modal-header"><h5 class="modal-title">Configurações de Som</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
-      <div class="modal-body">
-        <label>Efeitos <input type="range" id="volEfeitos" min="0" max="1" step="0.1" value="1"></label>
-        <div class="form-check mt-2">
-          <input class="form-check-input" type="checkbox" id="somAtivo" checked>
-          <label class="form-check-label">Ativar sons</label>
+  <!-- Modal Loja -->
+  <div class="modal fade" id="lojaModal" tabindex="-1"
+       aria-labelledby="lojaModalLabel" aria-modal="true" role="dialog">
+    <div class="modal-dialog">
+      <div class="modal-content bg-dark text-light">
+        <div class="modal-header">
+          <h5 class="modal-title" id="lojaModalLabel">
+            <i class="fas fa-store me-1" aria-hidden="true"></i> Loja
+          </h5>
+          <button type="button" class="btn-close btn-close-white"
+                  data-bs-dismiss="modal" aria-label="Fechar"></button>
+        </div>
+        <div class="modal-body">
+          <p>
+            <i class="fas fa-coins text-warning" aria-hidden="true"></i>
+            Moedas: <strong><span id="modalMoedas">0</span></strong>
+          </p>
+
+          <h6>Comprar moedas:</h6>
+          <div class="list-group mb-3">
+            <div class="list-group-item bg-secondary d-flex justify-content-between align-items-center">
+              <span>100 moedas</span>
+              <button class="btn btn-sm btn-success"
+                      onclick="Monetization.comprarMoedas(100)"
+                      aria-label="Comprar 100 moedas por R$1,99">
+                R$1,99
+              </button>
+            </div>
+            <div class="list-group-item bg-secondary d-flex justify-content-between align-items-center">
+              <span>500 moedas</span>
+              <button class="btn btn-sm btn-success"
+                      onclick="Monetization.comprarMoedas(500)"
+                      aria-label="Comprar 500 moedas por R$9,99">
+                R$9,99
+              </button>
+            </div>
+            <div class="list-group-item bg-secondary d-flex justify-content-between align-items-center">
+              <span>Premium — remove anúncios + dobra moedas</span>
+              <button class="btn btn-sm btn-warning"
+                      onclick="Monetization.assinarPremium()"
+                      aria-label="Assinar plano Premium por R$9,90 por mês">
+                R$9,90/mês
+              </button>
+            </div>
+          </div>
+
+          <h6>Gastar moedas:</h6>
+          <div class="d-flex flex-wrap gap-2">
+            <button class="btn btn-outline-info btn-sm"
+                    onclick="Monetization.comprarPowerUp('shield')"
+                    aria-label="Comprar Escudo por 50 moedas">
+              🛡 Escudo — 50 moedas
+            </button>
+            <button class="btn btn-outline-info btn-sm"
+                    onclick="Monetization.comprarPowerUp('double')"
+                    aria-label="Comprar 2x Pontos por 40 moedas">
+              ✕2 Pontos — 40 moedas
+            </button>
+            <button class="btn btn-outline-info btn-sm"
+                    onclick="Monetization.comprarPowerUp('slow')"
+                    aria-label="Comprar Lentidão por 30 moedas">
+              🐢 Lentidão — 30 moedas
+            </button>
+            <button class="btn btn-outline-info btn-sm"
+                    onclick="Monetization.comprarVida()"
+                    aria-label="Comprar vida extra por 100 moedas">
+              ❤️ Vida extra — 100 moedas
+            </button>
+          </div>
         </div>
       </div>
     </div>
   </div>
-</div>
 
-<!-- Game Over Overlay -->
-<div id="gameOverOverlay" style="position:fixed;left:0;top:0;width:100%;height:100%;display:none;align-items:center;justify-content:center;background:rgba(2,6,23,0.75);z-index:9999">
-  <div style="background:linear-gradient(180deg,#0b1220,#071026);padding:28px;border-radius:14px;color:#e6eef8;text-align:center;max-width:420px">
-    <h2 style="margin-bottom:8px">Game Over</h2>
-    <p style="margin:6px 0">Pontuação final: <strong id="finalScore">0</strong></p>
-    <p>Moedas ganhas: <strong id="finalMoedas">0</strong></p>
-    <div style="margin-top:12px">
-      <button id="playAgainBtn" class="btn" style="background:var(--primary);border:none;color:white;padding:10px 18px;border-radius:10px">Jogar Novamente</button>
+  <!-- Modal Configurações de Som -->
+  <div class="modal fade" id="somModal" tabindex="-1"
+       aria-labelledby="somModalLabel" aria-modal="true" role="dialog">
+    <div class="modal-dialog modal-sm">
+      <div class="modal-content bg-dark text-light">
+        <div class="modal-header">
+          <h5 class="modal-title" id="somModalLabel">Configurações de Som</h5>
+          <button type="button" class="btn-close btn-close-white"
+                  data-bs-dismiss="modal" aria-label="Fechar"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label for="volEfeitos" class="form-label">
+              Volume dos efeitos
+            </label>
+            <input type="range" class="form-range" id="volEfeitos"
+                   min="0" max="1" step="0.1" value="1"
+                   aria-label="Volume dos efeitos sonoros" />
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox"
+                   id="somAtivo" checked />
+            <label class="form-check-label" for="somAtivo">
+              Ativar sons
+            </label>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
-</div>
 
-<!-- Font Awesome e Bootstrap JS -->
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- Game Over Overlay -->
+  <div id="gameOverOverlay"
+       role="dialog"
+       aria-modal="true"
+       aria-labelledby="gameOverTitle"
+       style="display:none">
+    <div>
+      <h2 id="gameOverTitle" style="margin-bottom:8px">
+        <i class="fas fa-skull me-2" aria-hidden="true"></i>Game Over
+      </h2>
+      <p style="margin:6px 0">
+        Pontuação final: <strong id="finalScore">0</strong>
+      </p>
+      <p>
+        Moedas ganhas: <strong id="finalMoedas">0</strong>
+      </p>
+      <div style="margin-top:16px">
+        <button id="playAgainBtn"
+                class="btn"
+                style="background:var(--primary);border:none;color:white;padding:10px 20px;border-radius:10px"
+                aria-label="Jogar novamente">
+          <i class="fas fa-redo me-1" aria-hidden="true"></i> Jogar Novamente
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════
+       SCRIPTS
+  ══════════════════════════════════════════════ -->
+
+  <!-- Bootstrap JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+  <!-- FIX #6: JS extraído para arquivo separado (cache + manutenção) -->
+  <script src="game.js"></script>
 
-<script>
-// ============================================================
-//  ARQUITETURA MODULAR - NIBBLES PRO
-// ============================================================
-
-// ---------- CONFIGURAÇÕES GLOBAIS ----------
-const Config = {
-  gridSize: 20,
-  colors: {
-    primary: '#667eea',
-    secondary: '#764ba2',
-    accent: '#00ff88',
-    dark: '#0b1220',
-    light: '#f8fafc'
-  },
-  difficulty: {
-    easy:   { speed: 220, speedMultiplier: 1.0, foodCount: 1 },
-    medium: { speed: 140, speedMultiplier: 1.0, foodCount: 1 },
-    hard:   { speed: 90,  speedMultiplier: 1.25, foodCount: 2 }
-  },
-  foodTypes: [
-    { type: 'normal', score: 10, color: '#ffb86b', coinChance: 0.3 },
-    { type: 'bonus',  score: 25, color: '#ffd166', coinChance: 0.6 }
-  ],
-  powerUps: [
-    { id: 'slow',    label: 'Lento',     duration: 7000, effect: (s) => { s.speedMultiplier *= 0.7; }, badgeColor: '#7dd3fc', price: 30 },
-    { id: 'grow',    label: 'Crescer',   duration: 0,    effect: (s) => { s.growOnNext = true; },       badgeColor: '#bbf7d0', price: 20 },
-    { id: 'shield',  label: 'Escudo',    duration: 8000, effect: (s) => { s.shield = true; },            badgeColor: '#fca5a5', price: 50 },
-    { id: 'double',  label: '2x Pontos', duration: 8000, effect: (s) => { s.doublePoints = true; },      badgeColor: '#ffd6a5', price: 40 }
-  ],
-  coinValue: 1,
-  adReward: 10
-};
-
-// ---------- UTILS ----------
-const Utils = {
-  randInt: (min, max) => Math.floor(Math.random() * (max - min + 1)) + min,
-  posEqual: (a, b) => a.x === b.x && a.y === b.y,
-  tileToPx: (t) => t * Config.gridSize,
-
-  getValidRandomPosition(gridCountX, gridCountY, snake) {
-    const maxX = gridCountX - 1, maxY = gridCountY - 1;
-    let tries = 0;
-    while (tries < 400) {
-      const pos = { x: this.randInt(0, maxX), y: this.randInt(0, maxY) };
-      if (!snake.some(s => this.posEqual(s, pos))) return pos;
-      tries++;
-    }
-    return { x: Math.floor(gridCountX / 2), y: Math.floor(gridCountY / 2) };
-  },
-
-  // Desenha retângulo arredondado
-  roundRect(ctx, x, y, w, h, r, fill, stroke) {
-    if (typeof stroke === 'undefined') stroke = true;
-    ctx.beginPath();
-    ctx.moveTo(x + r, y);
-    ctx.arcTo(x + w, y, x + w, y + h, r);
-    ctx.arcTo(x + w, y + h, x, y + h, r);
-    ctx.arcTo(x, y + h, x, y, r);
-    ctx.arcTo(x, y, x + w, y, r);
-    ctx.closePath();
-    if (fill) ctx.fill();
-    if (stroke) ctx.stroke();
-  }
-};
-
-// ---------- ANALYTICS ----------
-const Analytics = {
-  eventos: [],
-  registrar(evento, dados = {}) {
-    const entry = { timestamp: new Date().toISOString(), evento, ...dados };
-    this.eventos.push(entry);
-    console.log('[Analytics]', entry);
-  }
-};
-
-// ---------- ÁUDIO ----------
-const AudioManager = {
-  ctx: null,
-  ativo: true,
-  volumeEfeitos: 1.0,
-
-  init() {
-    try {
-      this.ctx = new (window.AudioContext || window.webkitAudioContext)();
-    } catch (e) {
-      console.warn('Web Audio API não suportada');
-      this.ativo = false;
-    }
-    const saved = localStorage.getItem('nibbles_som_vol');
-    if (saved) this.volumeEfeitos = parseFloat(saved);
-    const savedAtivo = localStorage.getItem('nibbles_som_ativo');
-    if (savedAtivo !== null) this.ativo = (savedAtivo === 'true');
-  },
-
-  tocar(tipo) {
-    if (!this.ativo || !this.ctx) return;
-    if (this.ctx.state === 'suspended') this.ctx.resume();
-
-    const now = this.ctx.currentTime;
-    const gain = this.ctx.createGain();
-    gain.connect(this.ctx.destination);
-    gain.gain.setValueAtTime(this.volumeEfeitos, now);
-
-    const osc = this.ctx.createOscillator();
-    osc.connect(gain);
-
-    switch (tipo) {
-      case 'comer':
-        osc.frequency.setValueAtTime(300, now);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
-        osc.start(now);
-        osc.stop(now + 0.1);
-        break;
-      case 'powerup':
-        osc.frequency.setValueAtTime(600, now);
-        osc.frequency.exponentialRampToValueAtTime(900, now + 0.2);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
-        osc.start(now);
-        osc.stop(now + 0.2);
-        break;
-      case 'morte':
-        osc.frequency.setValueAtTime(200, now);
-        osc.frequency.exponentialRampToValueAtTime(80, now + 0.3);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
-        osc.start(now);
-        osc.stop(now + 0.3);
-        break;
-      case 'compra':
-        [440, 554, 660].forEach((f, i) => {
-          const o = this.ctx.createOscillator();
-          const g = this.ctx.createGain();
-          o.type = 'sine';
-          o.frequency.setValueAtTime(f, now + i * 0.1);
-          g.gain.setValueAtTime(0.2 * this.volumeEfeitos, now + i * 0.1);
-          g.gain.exponentialRampToValueAtTime(0.001, now + i * 0.1 + 0.15);
-          o.connect(g);
-          g.connect(this.ctx.destination);
-          o.start(now + i * 0.1);
-          o.stop(now + i * 0.1 + 0.15);
-        });
-        break;
-    }
-  },
-
-  setVolume(vol) { this.volumeEfeitos = vol; localStorage.setItem('nibbles_som_vol', vol); },
-  setAtivo(estado) { this.ativo = estado; localStorage.setItem('nibbles_som_ativo', estado); }
-};
-
-// ---------- CONTA DO USUÁRIO ----------
-const Conta = {
-  nome: 'Jogador',
-  moedas: 0,
-  premium: false,
-
-  carregar() {
-    const data = JSON.parse(localStorage.getItem('nibbles_conta')) || { nome: 'Jogador', moedas: 0, premium: false };
-    Object.assign(this, data);
-    this.atualizarUI();
-  },
-  salvar() {
-    localStorage.setItem('nibbles_conta', JSON.stringify({ nome: this.nome, moedas: this.moedas, premium: this.premium }));
-    this.atualizarUI();
-  },
-  login() {
-    const nome = document.getElementById('inputNome').value.trim() || 'Jogador';
-    this.nome = nome;
-    this.salvar();
-    bootstrap.Modal.getInstance(document.getElementById('loginModal')).hide();
-    Analytics.registrar('login', { nome });
-  },
-  adicionarMoedas(qtd) {
-    this.moedas += qtd;
-    this.salvar();
-    UI.atualizarMoedasUI();
-    Analytics.registrar('moedas_adicionadas', { qtd, saldo: this.moedas });
-  },
-  gastarMoedas(qtd) {
-    if (this.moedas >= qtd) {
-      this.moedas -= qtd;
-      this.salvar();
-      UI.atualizarMoedasUI();
-      return true;
-    }
-    return false;
-  },
-  tornarPremium() {
-    this.premium = true;
-    this.salvar();
-    document.getElementById('anuncioSimulado').classList.add('d-none');
-    Analytics.registrar('assinatura_premium');
-  },
-  atualizarUI() {
-    document.getElementById('userNameDisplay').textContent = this.nome;
-    document.getElementById('moedasDisplay').innerHTML = `<i class="fas fa-coins"></i> ${this.moedas}`;
-    document.getElementById('modalMoedas').textContent = this.moedas;
-    if (this.premium) {
-      document.getElementById('premiumBadge').classList.remove('d-none');
-      document.getElementById('anuncioSimulado').classList.add('d-none');
-    } else {
-      document.getElementById('premiumBadge').classList.add('d-none');
-      // Anúncio aparece apenas quando o jogo está rodando (controlado pelo setInterval)
-    }
-  }
-};
-
-// ---------- MONETIZAÇÃO ----------
-const Monetization = {
-  comprarMoedas(qtd) {
-    if (confirm(`Simular compra de ${qtd} moedas?`)) {
-      Conta.adicionarMoedas(qtd);
-      AudioManager.tocar('compra');
-      Analytics.registrar('compra_moedas', { qtd, valor: qtd === 100 ? 1.99 : 9.99 });
-      UI.mostrarToast('Compra realizada!', 'success');
-    }
-  },
-  assinarPremium() {
-    if (confirm('Assinar plano premium por R$9,90/mês?')) {
-      Conta.tornarPremium();
-      AudioManager.tocar('compra');
-      Analytics.registrar('assinatura', { plano: 'premium', valor: 9.90 });
-      UI.mostrarToast('Bem-vindo ao Premium!', 'success');
-    }
-  },
-  comprarPowerUp(id) {
-    const pu = Config.powerUps.find(p => p.id === id);
-    if (!pu) return;
-    if (Conta.gastarMoedas(pu.price)) {
-      // Ativa o power-up imediatamente (como se tivesse coletado)
-      Game.activatePowerUp(id);
-      AudioManager.tocar('compra');
-      Analytics.registrar('compra_powerup', { id, price: pu.price });
-      UI.mostrarToast(`${pu.label} ativado!`, 'success');
-    } else {
-      UI.mostrarToast('Moedas insuficientes!', 'warning');
-    }
-  },
-  comprarVida() {
-    if (Conta.gastarMoedas(100)) {
-      Game.state.lives += 1;
-      document.getElementById('lives').textContent = Game.state.lives;
-      AudioManager.tocar('compra');
-      Analytics.registrar('compra_vida');
-      UI.mostrarToast('Vida extra adquirida!', 'success');
-    } else {
-      UI.mostrarToast('Moedas insuficientes!', 'warning');
-    }
-  },
-  mostrarAnuncio() {
-    if (Conta.premium) return;
-    UI.mostrarToast('Assistindo anúncio...', 'info');
-    setTimeout(() => {
-      Conta.adicionarMoedas(Config.adReward);
-      UI.mostrarToast(`Ganhou ${Config.adReward} moedas!`, 'success');
-      Analytics.registrar('anuncio_assistido', { recompensa: Config.adReward });
-    }, 2000);
-  }
-};
-
-// ---------- ESTADO DO JOGO ----------
-const Game = {
-  state: {
-    gridCountX: 25, // 500/20
-    gridCountY: 25,
-    snake: [],
-    dir: { x: 1, y: 0 },
-    nextDir: null,
-    foods: [],
-    powerUpsOnField: [],
-    activePowerUps: {}, // id -> expiry timestamp
-    score: 0,
-    highScore: Number(localStorage.getItem('nibbles_highScore')) || 0,
-    lives: 3,
-    moedasColetadas: 0, // moedas ganhas na partida atual
-    running: false,
-    paused: false,
-    loopId: null,
-    intervalMs: Config.difficulty.medium.speed,
-    speedMultiplier: 1.0,
-    growOnNext: false,
-    shield: false,
-    doublePoints: false,
-    coinMultiplier: 1, // dobra se premium
-  },
-
-  init() {
-    this.state.gridCountX = Math.floor(500 / Config.gridSize);
-    this.state.gridCountY = Math.floor(500 / Config.gridSize);
-    this.reset();
-  },
-
-  reset() {
-    this.state.snake = [{ x: Math.floor(this.state.gridCountX / 2), y: Math.floor(this.state.gridCountY / 2) }];
-    this.state.dir = { x: 1, y: 0 };
-    this.state.nextDir = null;
-    this.state.foods = [];
-    this.state.powerUpsOnField = [];
-    this.state.activePowerUps = {};
-    this.state.score = 0;
-    this.state.lives = 3;
-    this.state.moedasColetadas = 0;
-    this.state.growOnNext = false;
-    this.state.shield = false;
-    this.state.doublePoints = false;
-    this.state.speedMultiplier = this.getCurrentDifficulty().speedMultiplier;
-    this.state.coinMultiplier = Conta.premium ? 2 : 1;
-    this.placeInitialFood();
-    this.spawnPowerUpTimer();
-    UI.atualizarInfo();
-    UI.atualizarPowerBadges();
-  },
-
-  getCurrentDifficulty() {
-    const activeBtn = document.querySelector('#difficultyGroup .difficulty-btn.active');
-    const level = activeBtn ? activeBtn.dataset.level : 'medium';
-    return Config.difficulty[level] || Config.difficulty.medium;
-  },
-
-  placeInitialFood() {
-    const dif = this.getCurrentDifficulty();
-    for (let i = 0; i < dif.foodCount; i++) this.generateFood();
-  },
-
-  generateFood() {
-    const pos = Utils.getValidRandomPosition(this.state.gridCountX, this.state.gridCountY, this.state.snake);
-    const type = Math.random() < 0.12 ? Config.foodTypes[1] : Config.foodTypes[0];
-    this.state.foods.push({ pos, ...type });
-  },
-
-  generateCoin() {
-    // Moeda é um tipo especial de comida que dá moedas em vez de pontos
-    const pos = Utils.getValidRandomPosition(this.state.gridCountX, this.state.gridCountY, this.state.snake);
-    this.state.foods.push({ pos, type: 'coin', score: 0, color: 'gold', coinValue: 1 });
-  },
-
-  spawnPowerUp() {
-    if (!this.state.running) return;
-    const pos = Utils.getValidRandomPosition(this.state.gridCountX, this.state.gridCountY, this.state.snake);
-    const idx = Utils.randInt(0, Config.powerUps.length - 1);
-    const pu = Config.powerUps[idx];
-    this.state.powerUpsOnField.push({ id: pu.id, pos, color: pu.badgeColor });
-  },
-
-  spawnPowerUpTimer() {
-    if (this._powerInterval) clearInterval(this._powerInterval);
-    this._powerInterval = setInterval(() => {
-      if (this.state.running && Math.random() < 0.06) this.spawnPowerUp();
-    }, 5000);
-  },
-
-  activatePowerUp(id) {
-    const pu = Config.powerUps.find(p => p.id === id);
-    if (!pu) return;
-    if (pu.effect) pu.effect(this.state);
-    if (pu.duration > 0) {
-      this.state.activePowerUps[id] = Date.now() + pu.duration;
-    }
-    AudioManager.tocar('powerup');
-    UI.atualizarPowerBadges();
-    UI.atualizarSpeedUI();
-    this.restartLoop();
-  },
-
-  updateActivePowerUps() {
-    const now = Date.now();
-    let changed = false;
-    for (const [id, expiry] of Object.entries(this.state.activePowerUps)) {
-      if (expiry <= now) {
-        // Reverter efeitos
-        if (id === 'slow') this.state.speedMultiplier = this.getCurrentDifficulty().speedMultiplier;
-        if (id === 'shield') this.state.shield = false;
-        if (id === 'double') this.state.doublePoints = false;
-        delete this.state.activePowerUps[id];
-        changed = true;
-      }
-    }
-    if (changed) {
-      UI.atualizarPowerBadges();
-      UI.atualizarSpeedUI();
-      this.restartLoop();
-    }
-  },
-
-  restartLoop() {
-    if (this.state.loopId) {
-      clearInterval(this.state.loopId);
-      this.state.loopId = null;
-    }
-    if (this.state.running && !this.state.paused) {
-      const interval = Math.max(18, Math.floor(this.state.intervalMs / (this.state.speedMultiplier || 1)));
-      this.state.loopId = setInterval(() => this.tick(), interval);
-    }
-  },
-
-  tick() {
-    if (!this.state.running || this.state.paused) return;
-
-    // Direção
-    if (this.state.nextDir) {
-      if (!(this.state.nextDir.x === -this.state.dir.x && this.state.nextDir.y === -this.state.dir.y)) {
-        this.state.dir = this.state.nextDir;
-      }
-      this.state.nextDir = null;
-    }
-
-    const head = { ...this.state.snake[0] };
-    head.x += this.state.dir.x;
-    head.y += this.state.dir.y;
-
-    // Colisão com paredes
-    if (head.x < 0 || head.y < 0 || head.x >= this.state.gridCountX || head.y >= this.state.gridCountY) {
-      if (this.state.shield) {
-        head.x = Math.floor(this.state.gridCountX / 2);
-        head.y = Math.floor(this.state.gridCountY / 2);
-        this.state.shield = false;
-      } else {
-        this.handleDeath();
-        return;
-      }
-    }
-
-    // Colisão com o próprio corpo
-    for (let i = 0; i < this.state.snake.length; i++) {
-      if (Utils.posEqual(head, this.state.snake[i])) {
-        if (this.state.shield) {
-          this.state.shield = false;
-          break;
-        } else {
-          this.handleDeath();
-          return;
-        }
-      }
-    }
-
-    this.state.snake.unshift(head);
-
-    // Verificar colisão com comidas/power-ups
-    let ateFood = false;
-    for (let i = 0; i < this.state.foods.length; i++) {
-      const f = this.state.foods[i];
-      if (Utils.posEqual(head, f.pos)) {
-        this.state.foods.splice(i, 1);
-        if (f.type === 'coin') {
-          const ganho = (f.coinValue || 1) * this.state.coinMultiplier;
-          Conta.adicionarMoedas(ganho);
-          this.state.moedasColetadas += ganho;
-        } else {
-          const pts = f.score || 10;
-          this.state.score += this.state.doublePoints ? pts * 2 : pts;
-          if (Math.random() < 0.2) this.generateCoin(); // chance de spawnar moeda ao comer
-        }
-        ateFood = true;
-        AudioManager.tocar('comer');
-        break;
-      }
-    }
-
-    for (let i = 0; i < this.state.powerUpsOnField.length; i++) {
-      const pu = this.state.powerUpsOnField[i];
-      if (Utils.posEqual(head, pu.pos)) {
-        this.state.powerUpsOnField.splice(i, 1);
-        this.activatePowerUp(pu.id);
-        break;
-      }
-    }
-
-    if (!ateFood && !this.state.growOnNext) {
-      this.state.snake.pop();
-    } else {
-      this.state.growOnNext = false;
-    }
-
-    // Atualizar recorde
-    if (this.state.score > this.state.highScore) {
-      this.state.highScore = this.state.score;
-      localStorage.setItem('nibbles_highScore', this.state.highScore);
-    }
-
-    this.updateActivePowerUps();
-    this.ensureFoodCount();
-    UI.atualizarInfo();
-    UI.draw();
-  },
-
-  handleDeath() {
-    this.state.lives--;
-    if (this.state.lives > 0) {
-      // Ressuscita no centro
-      this.state.snake = [{ x: Math.floor(this.state.gridCountX / 2), y: Math.floor(this.state.gridCountY / 2) }];
-      this.state.dir = { x: 1, y: 0 };
-      this.state.foods = [];
-      this.state.powerUpsOnField = [];
-      this.placeInitialFood();
-      AudioManager.tocar('morte');
-    } else {
-      // Game over
-      this.state.running = false;
-      if (this.state.loopId) {
-        clearInterval(this.state.loopId);
-        this.state.loopId = null;
-      }
-      UI.mostrarGameOver();
-      Analytics.registrar('game_over', { score: this.state.score, moedas: this.state.moedasColetadas });
-    }
-    UI.atualizarInfo();
-  },
-
-  ensureFoodCount() {
-    const dif = this.getCurrentDifficulty();
-    const need = dif.foodCount;
-    while (this.state.foods.length < need) this.generateFood();
-  },
-
-  setDir(x, y) {
-    if (this.state.running && !this.state.paused) {
-      this.state.nextDir = { x, y };
-    }
-  },
-
-  start() {
-    if (this.state.running && !this.state.paused) return;
-    this.reset();
-    this.state.running = true;
-    this.state.paused = false;
-    UI.atualizarBotoes();
-    this.restartLoop();
-    Analytics.registrar('jogo_iniciado');
-  },
-
-  pause() {
-    if (!this.state.running) return;
-    this.state.paused = !this.state.paused;
-    if (this.state.paused) {
-      if (this.state.loopId) {
-        clearInterval(this.state.loopId);
-        this.state.loopId = null;
-      }
-    } else {
-      this.restartLoop();
-    }
-    UI.atualizarBotoes();
-  },
-
-  resetGame() {
-    if (this.state.loopId) {
-      clearInterval(this.state.loopId);
-      this.state.loopId = null;
-    }
-    this.state.running = false;
-    this.state.paused = false;
-    this.reset();
-    UI.atualizarBotoes();
-    UI.drawStartScreen();
-  }
-};
-
-// ---------- UI ----------
-const UI = {
-  canvas: document.getElementById('gameCanvas'),
-  ctx: document.getElementById('gameCanvas').getContext('2d'),
-
-  init() {
-    this.atualizarInfo();
-    this.atualizarPowerBadges();
-    this.atualizarSpeedUI();
-    this.atualizarMoedasUI();
-    this.drawStartScreen();
-  },
-
-  atualizarInfo() {
-    document.getElementById('score').textContent = Game.state.score;
-    document.getElementById('highScore').textContent = Game.state.highScore;
-    document.getElementById('lives').textContent = Game.state.lives;
-    document.getElementById('moedasJogo').textContent = Game.state.moedasColetadas;
-  },
-
-  atualizarMoedasUI() {
-    document.getElementById('moedasDisplay').innerHTML = `<i class="fas fa-coins"></i> ${Conta.moedas}`;
-    document.getElementById('modalMoedas').textContent = Conta.moedas;
-  },
-
-  atualizarSpeedUI() {
-    const max = 300;
-    const pct = Math.min(100, Math.round((max - Game.state.intervalMs) / max * 100));
-    document.getElementById('speedBar').style.width = pct + '%';
-    document.getElementById('speedDisplay').textContent = Game.state.speedMultiplier.toFixed(2) + 'x';
-  },
-
-  atualizarPowerBadges() {
-    const container = document.getElementById('powerBadges');
-    container.innerHTML = '';
-    const ativos = Object.keys(Game.state.activePowerUps);
-    if (ativos.length === 0) {
-      document.getElementById('powerUpList').textContent = '—';
-    } else {
-      document.getElementById('powerUpList').textContent = ativos.join(', ');
-      ativos.forEach(id => {
-        const pu = Config.powerUps.find(p => p.id === id);
-        if (pu) {
-          const span = document.createElement('span');
-          span.className = 'power-up';
-          span.textContent = pu.label;
-          span.style.background = pu.badgeColor;
-          container.appendChild(span);
-        }
-      });
-    }
-  },
-
-  atualizarBotoes() {
-    const startBtn = document.getElementById('startBtn');
-    const pauseBtn = document.getElementById('pauseBtn');
-    const restartBtn = document.getElementById('restartBtn');
-    if (Game.state.running) {
-      startBtn.style.display = 'none';
-      pauseBtn.style.display = 'inline-block';
-      restartBtn.style.display = 'inline-block';
-      pauseBtn.textContent = Game.state.paused ? 'Continuar' : 'Pausar';
-    } else {
-      startBtn.style.display = 'inline-block';
-      pauseBtn.style.display = 'none';
-      restartBtn.style.display = 'none';
-    }
-  },
-
-  draw() {
-    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-    // Desenhar comidas
-    Game.state.foods.forEach(f => {
-      const px = f.pos.x * Config.gridSize, py = f.pos.y * Config.gridSize;
-      this.ctx.fillStyle = f.color;
-      if (f.type === 'coin') {
-        // Desenha uma estrela/moeda
-        this.ctx.beginPath();
-        this.ctx.arc(px + Config.gridSize/2, py + Config.gridSize/2, Config.gridSize/3, 0, 2*Math.PI);
-        this.ctx.fill();
-        this.ctx.fillStyle = 'goldenrod';
-        this.ctx.font = 'bold 12px monospace';
-        this.ctx.textAlign = 'center';
-        this.ctx.textBaseline = 'middle';
-        this.ctx.fillText('$', px + Config.gridSize/2, py + Config.gridSize/2);
-      } else {
-        Utils.roundRect(this.ctx, px+2, py+2, Config.gridSize-4, Config.gridSize-4, 6, true, false);
-      }
-    });
-    // Desenhar power-ups
-    Game.state.powerUpsOnField.forEach(p => {
-      const px = p.pos.x * Config.gridSize, py = p.pos.y * Config.gridSize;
-      this.ctx.fillStyle = p.color;
-      this.ctx.beginPath();
-      this.ctx.arc(px + Config.gridSize/2, py + Config.gridSize/2, Config.gridSize/3, 0, 2*Math.PI);
-      this.ctx.fill();
-    });
-    // Desenhar cobra
-    Game.state.snake.forEach((seg, i) => {
-      const px = seg.x * Config.gridSize, py = seg.y * Config.gridSize;
-      this.ctx.fillStyle = i === 0 ? Config.colors.primary : (i % 2 === 0 ? Config.colors.secondary : '#18324a');
-      Utils.roundRect(this.ctx, px+1, py+1, Config.gridSize-2, Config.gridSize-2, 6, true, false);
-    });
-    // Escudo
-    if (Game.state.shield && Game.state.snake[0]) {
-      const head = Game.state.snake[0];
-      const px = head.x * Config.gridSize, py = head.y * Config.gridSize;
-      this.ctx.strokeStyle = '#fca5a5';
-      this.ctx.lineWidth = 3;
-      this.ctx.strokeRect(px+2, py+2, Config.gridSize-4, Config.gridSize-4);
-    }
-  },
-
-  drawStartScreen() {
-    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-    this.ctx.fillStyle = '#ffffff';
-    this.ctx.globalAlpha = 0.04;
-    this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-    this.ctx.globalAlpha = 1;
-    this.ctx.fillStyle = '#9fb4d8';
-    this.ctx.font = '18px system-ui, sans-serif';
-    this.ctx.textAlign = 'center';
-    this.ctx.fillText('Clique Iniciar para jogar', this.canvas.width/2, this.canvas.height/2 - 6);
-    this.ctx.font = '13px system-ui, sans-serif';
-    this.ctx.fillStyle = '#8aa7c9';
-    this.ctx.fillText('Setas / WASD / Swipe', this.canvas.width/2, this.canvas.height/2 + 14);
-  },
-
-  mostrarGameOver() {
-    document.getElementById('finalScore').textContent = Game.state.score;
-    document.getElementById('finalMoedas').textContent = Game.state.moedasColetadas;
-    document.getElementById('gameOverOverlay').style.display = 'flex';
-  },
-
-  hideGameOver() {
-    document.getElementById('gameOverOverlay').style.display = 'none';
-  },
-
-  mostrarToast(msg, tipo) {
-    // Implementação simples (poderia ser um toast flutuante, mas usaremos alert por simplicidade)
-    alert(msg); // Para não complicar, usamos alert. Em produção, usar um toast elegante.
-  }
-};
-
-// ---------- INICIALIZAÇÃO E EVENTOS ----------
-window.addEventListener('load', () => {
-  Conta.carregar();
-  Game.init();
-  UI.init();
-  AudioManager.init();
-
-  // Botões
-  document.getElementById('startBtn').addEventListener('click', () => Game.start());
-  document.getElementById('pauseBtn').addEventListener('click', () => Game.pause());
-  document.getElementById('restartBtn').addEventListener('click', () => Game.resetGame());
-  document.getElementById('playAgainBtn').addEventListener('click', () => {
-    UI.hideGameOver();
-    Game.start();
-  });
-
-  // Dificuldade
-  document.querySelectorAll('#difficultyGroup .difficulty-btn').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      document.querySelectorAll('#difficultyGroup .difficulty-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      if (Game.state.running) {
-        Game.state.intervalMs = Game.getCurrentDifficulty().speed;
-        Game.state.speedMultiplier = Game.getCurrentDifficulty().speedMultiplier;
-        Game.restartLoop();
-        UI.atualizarSpeedUI();
-      }
-    });
-  });
-
-  // Teclado
-  window.addEventListener('keydown', (e) => {
-    const k = e.key.toLowerCase();
-    if (k === 'arrowup' || k === 'w') Game.setDir(0, -1);
-    if (k === 'arrowdown' || k === 's') Game.setDir(0, 1);
-    if (k === 'arrowleft' || k === 'a') Game.setDir(-1, 0);
-    if (k === 'arrowright' || k === 'd') Game.setDir(1, 0);
-    if (k === ' ') {
-      e.preventDefault();
-      if (!Game.state.running) Game.start(); else Game.pause();
-    }
-    if (k === 'r') Game.resetGame();
-  });
-
-  // Swipe
-  let touchStart = null;
-  document.getElementById('gameCanvas').addEventListener('touchstart', (e) => {
-    const t = e.touches[0];
-    touchStart = { x: t.clientX, y: t.clientY };
-  }, { passive: true });
-  document.getElementById('gameCanvas').addEventListener('touchend', (e) => {
-    if (!touchStart) return;
-    const t = e.changedTouches[0];
-    const dx = t.clientX - touchStart.x;
-    const dy = t.clientY - touchStart.y;
-    if (Math.abs(dx) > 20 || Math.abs(dy) > 20) {
-      if (Math.abs(dx) > Math.abs(dy)) {
-        Game.setDir(dx > 0 ? 1 : -1, 0);
-      } else {
-        Game.setDir(0, dy > 0 ? 1 : -1);
-      }
-    }
-    touchStart = null;
-  }, { passive: true });
-
-  // Som
-  document.getElementById('btnSom').addEventListener('click', () => {
-    const modal = new bootstrap.Modal(document.getElementById('somModal'));
-    document.getElementById('volEfeitos').value = AudioManager.volumeEfeitos;
-    document.getElementById('somAtivo').checked = AudioManager.ativo;
-    modal.show();
-  });
-  document.getElementById('volEfeitos').addEventListener('input', (e) => AudioManager.setVolume(parseFloat(e.target.value)));
-  document.getElementById('somAtivo').addEventListener('change', (e) => AudioManager.setAtivo(e.target.checked));
-
-  // Anúncio periódico
-  setInterval(() => {
-    if (!Conta.premium && Game.state.running) {
-      document.getElementById('anuncioSimulado').classList.remove('d-none');
-    } else {
-      document.getElementById('anuncioSimulado').classList.add('d-none');
-    }
-  }, 30000);
-});
-
-// Expor para chamadas dos modais (onclick)
-window.Conta = Conta;
-window.Monetization = Monetization;
-window.Game = Game;
-</script>
 </body>
 </html>
